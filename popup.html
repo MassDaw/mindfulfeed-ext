@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindfulFeed</title>
+  <link rel="stylesheet" href="popup.css">
+  <style>
+    body {
+      width: 400px;
+      min-height: 500px;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f8fafc;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 0 0 16px 16px;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    
+    .header p {
+      margin: 8px 0 0 0;
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .section {
+      margin-bottom: 24px;
+    }
+    
+    .section-title {
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: #d1d5db;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .toggle.active {
+      background: #667eea;
+    }
+    
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+    }
+    
+    .toggle.active::after {
+      transform: translateX(20px);
+    }
+    
+    .input-group {
+      margin-bottom: 16px;
+    }
+    
+    .input-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #374151;
+      font-size: 14px;
+    }
+    
+    .input-group input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .input-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .sites-list {
+      max-height: 120px;
+      overflow-y: auto;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 8px;
+      background: white;
+    }
+    
+    .site-item {
+      display: flex;
+      align-items: center;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      transition: background 0.2s ease;
+    }
+    
+    .site-item:hover {
+      background: #f3f4f6;
+    }
+    
+    .site-item input[type="checkbox"] {
+      margin-right: 8px;
+    }
+    
+    .site-item label {
+      flex: 1;
+      font-size: 14px;
+      color: #374151;
+      cursor: pointer;
+    }
+    
+    .messages-section {
+      margin-top: 20px;
+    }
+    
+    .categories-container {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .category-item {
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      background: white;
+      overflow: hidden;
+    }
+    
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .category-title {
+      font-weight: 600;
+      color: #374151;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .category-toggle {
+      position: relative;
+      width: 40px;
+      height: 20px;
+      background: #d1d5db;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .category-toggle.active {
+      background: #667eea;
+    }
+    
+    .category-toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s ease;
+    }
+    
+    .category-toggle.active::after {
+      transform: translateX(20px);
+    }
+    
+    .category-content {
+      padding: 12px 16px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    
+    .category-content.expanded {
+      max-height: 400px;
+    }
+    
+    .messages-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 12px;
+      background: #f9fafb;
+      margin-bottom: 12px;
+    }
+    
+    .message-item {
+      display: flex;
+      align-items: flex-start;
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      transition: background 0.2s ease;
+      background: white;
+      border: 1px solid #f3f4f6;
+    }
+    
+    .message-item:hover {
+      background: #f3f4f6;
+    }
+    
+    .message-text {
+      flex: 1;
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.5;
+      margin-right: 8px;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+    
+    .message-actions {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .category-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    
+    .btn-add-message {
+      background: #10b981;
+      color: white;
+      width: 100%;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+    }
+    
+    .btn-add-message:hover {
+      background: #059669;
+    }
+    
+    .btn-add-category {
+      background: #8b5cf6;
+      color: white;
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 8px;
+    }
+    
+    .btn-add-category:hover {
+      background: #7c3aed;
+    }
+    
+    .btn-rename {
+      background: #f59e0b;
+      color: white;
+    }
+    
+    .btn-rename:hover {
+      background: #d97706;
+    }
+    
+    .btn-delete-category {
+      background: #ef4444;
+      color: white;
+    }
+    
+    .btn-delete-category:hover {
+      background: #dc2626;
+    }
+    
+    .category-icon {
+      font-size: 16px;
+    }
+    
+    .empty-messages {
+      text-align: center;
+      padding: 20px;
+      color: #6b7280;
+      font-style: italic;
+      background: #f9fafb;
+      border-radius: 6px;
+      border: 1px dashed #d1d5db;
+    }
+    
+    /* Pestañas */
+    .tabs-container {
+      margin-bottom: 20px;
+    }
+    
+    .tab-buttons {
+      display: flex;
+      background: #f3f4f6;
+      border-radius: 8px;
+      padding: 4px;
+      gap: 4px;
+    }
+    
+    .tab-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: #6b7280;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .tab-btn.active {
+      background: white;
+      color: #374151;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .tab-btn:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.5);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Estadísticas */
+    .stats-container {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    
+    .stat-item {
+      flex: 1;
+      text-align: center;
+      padding: 16px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      color: white;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Modo Zen */
+    .zen-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px;
+      background: #f0fdf4;
+      border: 2px solid #bbf7d0;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .zen-status.active {
+      background: #ecfdf5;
+      border-color: #10b981;
+    }
+    
+    .zen-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .zen-status-text {
+      font-weight: 600;
+      color: #374151;
+      font-size: 14px;
+    }
+    
+    .zen-time {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .zen-config {
+      padding: 16px;
+      background: #f9fafb;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .zen-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    
+    .btn-zen {
+      background: #10b981;
+      color: white;
+      padding: 8px 16px;
+      font-size: 13px;
+    }
+    
+    .btn-zen:hover {
+      background: #059669;
+    }
+    
+    .btn-zen.active {
+      background: #ef4444;
+    }
+    
+    .btn-zen.active:hover {
+      background: #dc2626;
+    }
+    
+    .btn-start-zen {
+      background: #10b981;
+      color: white;
+      flex: 1;
+    }
+    
+    .btn-start-zen:hover {
+      background: #059669;
+    }
+    
+    .btn-cancel-zen {
+      background: #6b7280;
+      color: white;
+      flex: 1;
+    }
+    
+    .btn-cancel-zen:hover {
+      background: #4b5563;
+    }
+    
+    /* Tabla de estadísticas */
+    .stats-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .btn-export {
+      background: #10b981;
+      color: white;
+      flex: 1;
+    }
+    
+    .btn-export:hover {
+      background: #059669;
+    }
+    
+    .btn-clear {
+      background: #ef4444;
+      color: white;
+      flex: 1;
+    }
+    
+    .btn-clear:hover {
+      background: #dc2626;
+    }
+    
+    .stats-table-container {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: white;
+    }
+    
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    
+    .stats-table th {
+      background: #f9fafb;
+      padding: 12px 8px;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 1px solid #e5e7eb;
+      position: sticky;
+      top: 0;
+    }
+    
+    .stats-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #f3f4f6;
+      color: #374151;
+    }
+    
+    .stats-table tr:hover {
+      background: #f9fafb;
+    }
+    
+    .stats-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .no-data {
+      text-align: center;
+      padding: 40px 20px;
+      color: #6b7280;
+    }
+    
+    .no-data p {
+      margin: 8px 0;
+      font-size: 14px;
+    }
+    
+    /* Buy Me a Coffee */
+    .coffee-section {
+      margin-top: 20px;
+      text-align: center;
+    }
+    
+    .coffee-btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+      color: white;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+    }
+    
+    .coffee-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(255, 107, 107, 0.4);
+    }
+    
+    .btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-edit {
+      background: #667eea;
+      color: white;
+    }
+    
+    .btn-edit:hover {
+      background: #5a67d8;
+    }
+    
+    .btn-delete {
+      background: #ef4444;
+      color: white;
+    }
+    
+    .btn-delete:hover {
+      background: #dc2626;
+    }
+    
+    .btn-add {
+      background: #10b981;
+      color: white;
+      width: 100%;
+      padding: 8px 12px;
+      margin-top: 8px;
+    }
+    
+    .btn-add:hover {
+      background: #059669;
+    }
+    
+    .save-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 16px;
+    }
+    
+    .save-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    .save-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .status {
+      text-align: center;
+      padding: 8px;
+      margin-top: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      display: none;
+    }
+    
+    .status.success {
+      background: #d1fae5;
+      color: #065f46;
+      display: block;
+    }
+    
+    .status.error {
+      background: #fee2e2;
+      color: #991b1b;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>⏰ MindfulFeed</h1>
+    <p>Controla tu tiempo en redes sociales</p>
+  </div>
+  
+  <div class="content">
+    <!-- Pestañas -->
+    <div class="tabs-container">
+      <div class="tab-buttons">
+        <button class="tab-btn active" data-tab="main">Principal</button>
+        <button class="tab-btn" data-tab="stats">📊 Estadísticas</button>
+      </div>
+    </div>
+    
+    <!-- Pestaña Principal -->
+    <div class="tab-content active" id="main-tab">
+      <!-- Estadísticas diarias -->
+      <div class="section stats-section">
+        <div class="section-title">📊 Estadísticas de hoy</div>
+        <div class="stats-container">
+          <div class="stat-item">
+            <div class="stat-value" id="daily-time">0</div>
+            <div class="stat-label">Minutos totales</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="current-session">0</div>
+            <div class="stat-label">Sesión actual</div>
+          </div>
+        </div>
+      </div>
+    
+    <!-- Modo Zen -->
+    <div class="section zen-section">
+      <div class="section-title">🧘‍♀️ Modo Zen</div>
+      <div class="zen-status" id="zen-status">
+        <div class="zen-info">
+          <span class="zen-status-text">Inactivo</span>
+          <span class="zen-time" id="zen-time"></span>
+        </div>
+        <button class="btn btn-zen" id="zen-toggle">Iniciar Modo Zen</button>
+      </div>
+      <div class="zen-config" id="zen-config" style="display: none;">
+        <div class="input-group">
+          <label for="zen-duration">Duración (minutos)</label>
+          <input type="number" id="zen-duration" min="5" max="120" value="25">
+        </div>
+        <div class="zen-actions">
+          <button class="btn btn-start-zen" id="start-zen">🚀 Iniciar</button>
+          <button class="btn btn-cancel-zen" id="cancel-zen">❌ Cancelar</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Toggle principal -->
+    <div class="section">
+      <div class="toggle-container">
+        <span class="section-title">Activar extensión</span>
+        <div class="toggle" id="main-toggle"></div>
+      </div>
+    </div>
+    
+    <!-- Intervalo de notificación -->
+    <div class="section">
+      <div class="input-group">
+        <label for="interval">Intervalo de notificación (minutos)</label>
+        <input type="number" id="interval" min="1" max="60" value="10">
+      </div>
+    </div>
+    
+    <!-- Sitios a monitorear -->
+    <div class="section">
+      <div class="section-title">Sitios a monitorear</div>
+      <div class="sites-list" id="sites-list">
+        <!-- Los sitios se cargarán dinámicamente -->
+      </div>
+    </div>
+    
+    <!-- Mensajes personalizados -->
+    <div class="section messages-section">
+      <div class="section-title">Mensajes personalizados</div>
+      <div class="categories-container" id="categories-container">
+        <!-- Las categorías se cargarán dinámicamente -->
+      </div>
+      <div class="add-category-section">
+        <button class="btn btn-add-category" id="add-category">+ Nueva categoría</button>
+      </div>
+    </div>
+    
+    <!-- Botón guardar -->
+    <button class="save-btn" id="save-config">💾 Guardar configuración</button>
+    
+    <!-- Estado -->
+    <div class="status" id="status"></div>
+    
+    <!-- Buy Me a Coffee -->
+    <div class="coffee-section">
+      <a href="https://coff.ee/freeextensions" target="_blank" class="coffee-btn">
+        ☕ Buy Me a Coffee
+      </a>
+    </div>
+  </div>
+  
+  <!-- Pestaña Estadísticas -->
+  <div class="tab-content" id="stats-tab">
+    <div class="section">
+      <div class="section-title">📈 Historial de 7 días</div>
+      <div class="stats-actions">
+        <button class="btn btn-export" id="export-csv">📊 Exportar CSV</button>
+        <button class="btn btn-clear" id="clear-stats">🗑️ Limpiar historial</button>
+      </div>
+      <div class="stats-table-container">
+        <table class="stats-table" id="stats-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Sitio</th>
+              <th>Tiempo (min)</th>
+            </tr>
+          </thead>
+          <tbody id="stats-tbody">
+            <!-- Los datos se cargarán dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+      <div class="no-data" id="no-data" style="display: none;">
+        <p>No hay datos de navegación para mostrar</p>
+        <p>¡Comienza a usar la extensión para ver tus estadísticas!</p>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html> 
