@@ -7,10 +7,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'showNotification') {
     showNotificationPopup(request.message);
   } else if (request.action === 'zenModeEnded') {
-  showZenModeEndedNotification();
-} else if (request.action === 'showZenModeBlocking') {
-  showZenModeBlockingModal(request.url);
-}
+    showZenModeEndedNotification();
+  } else if (request.action === 'zenModeStarted') {
+    showZenModeStartedNotification(request.duration);
+  } else if (request.action === 'zenModeStopped') {
+    showZenModeStoppedNotification();
+  } else if (request.action === 'showZenModeBlocking') {
+    showZenModeBlockingModal(request.url);
+  }
 });
 
 // Verificar modo Zen al cargar la página
@@ -105,8 +109,17 @@ function hideZenModeWarning() {
 
 // Mostrar notificación de fin de modo Zen
 function showZenModeEndedNotification() {
-  const message = "¡Excelente! Has completado tu sesión de enfoque. 🎉 Tómate un descanso y celebra tu productividad.";
-  showNotificationPopup(message);
+  showNotificationPopup('🧘‍♀️ Modo Zen terminado. ¡Buen trabajo manteniendo el enfoque!');
+}
+
+// Mostrar notificación de inicio de modo Zen
+function showZenModeStartedNotification(duration) {
+  showNotificationPopup(`🧘‍♀️ Modo Zen iniciado por ${duration} minutos. ¡Mantén el enfoque!`);
+}
+
+// Mostrar notificación de detención de modo Zen
+function showZenModeStoppedNotification() {
+  showNotificationPopup('🧘‍♀️ Modo Zen detenido. Puedes continuar navegando normalmente.');
 }
 
 // Mostrar modal de bloqueo del Modo Zen

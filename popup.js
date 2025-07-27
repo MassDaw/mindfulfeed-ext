@@ -346,6 +346,18 @@ function toggleExtension() {
   } else {
     toggle.classList.remove('active');
   }
+  
+  // Enviar configuración al background inmediatamente
+  chrome.runtime.sendMessage({
+    action: 'updateConfig',
+    config: currentConfig
+  }, (response) => {
+    if (response && response.success) {
+      console.log('[MindfulFeed Popup] Extensión', currentConfig.enabled ? 'activada' : 'desactivada');
+    } else {
+      console.log('[MindfulFeed Popup] Error al', currentConfig.enabled ? 'activar' : 'desactivar', 'la extensión');
+    }
+  });
 }
 
 // Guardar configuración
@@ -425,8 +437,13 @@ function hideStatus() {
 function loadStats() {
   chrome.runtime.sendMessage({ action: 'getStats' }, (response) => {
     if (response) {
-      // Actualizar tiempo total (único contador)
-      const totalMinutes = response.dailyStats.totalTime || 0;
+      console.log('[MindfulFeed Popup] loadStats - response:', response);
+      console.log('[MindfulFeed Popup] loadStats - dailyTotal:', response.dailyTotal);
+      console.log('[MindfulFeed Popup] loadStats - dailyStats.totalTime:', response.dailyStats?.totalTime);
+      
+      // Actualizar tiempo total (dailyTotal es el tiempo acumulado en el día)
+      const totalMinutes = response.dailyTotal || 0;
+      console.log('[MindfulFeed Popup] loadStats - totalMinutes a mostrar:', totalMinutes);
       document.getElementById('daily-time').textContent = totalMinutes;
       
       // Actualizar estado del modo Zen
@@ -440,10 +457,10 @@ function startStatsUpdate() {
   // Actualizar inmediatamente
   loadStats();
   
-  // Actualizar cada 5 segundos para mejor feedback
+  // Actualizar cada 3 segundos para mejor feedback
   setInterval(() => {
     loadStats();
-  }, 5000);
+  }, 3000);
 }
 
 // Actualizar estado del modo Zen
@@ -456,8 +473,7 @@ function updateZenStatus(zenMode) {
   
   if (zenMode && zenMode.active) {
     zenStatus.classList.add('active');
-    zenToggle.textContent = 'Iniciar Modo Zen';
-    zenToggle.classList.remove('active');
+    zenToggle.style.display = 'none'; // Ocultar botón de iniciar
     zenStop.style.display = 'block';
     
     const remainingTime = Math.max(0, zenMode.endTime - Date.now());
@@ -467,12 +483,29 @@ function updateZenStatus(zenMode) {
     zenTime.textContent = `${remainingMinutes}:${remainingSeconds.toString().padStart(2, '0')} restantes`;
     statusText.textContent = 'Activo';
     
-    // Actualizar cada segundo
-    setTimeout(() => {
-      updateZenStatus(zenMode);
-    }, 1000);
+    // Solo actualizar si aún está activo
+    if (remainingTime > 0) {
+      setTimeout(() => {
+        // Obtener el estado actual del modo Zen antes de actualizar
+        chrome.runtime.sendMessage({ action: 'getZenMode' }, (response) => {
+          if (response && response.zenMode) {
+            updateZenStatus(response.zenMode);
+          }
+        });
+      }, 1000);
+    } else {
+      // Si el tiempo se agotó, actualizar el estado
+      zenStatus.classList.remove('active');
+      zenToggle.style.display = 'block';
+      zenToggle.textContent = 'Iniciar Modo Zen';
+      zenToggle.classList.remove('active');
+      zenStop.style.display = 'none';
+      zenTime.textContent = '';
+      statusText.textContent = 'Inactivo';
+    }
   } else {
     zenStatus.classList.remove('active');
+    zenToggle.style.display = 'block'; // Mostrar botón de iniciar
     zenToggle.textContent = 'Iniciar Modo Zen';
     zenToggle.classList.remove('active');
     zenStop.style.display = 'none';
@@ -645,8 +678,11 @@ function resetStats() {
   if (confirm('¿Reiniciar el contador y guardar el tiempo actual en el historial?')) {
     chrome.runtime.sendMessage({ action: 'resetStats' }, (response) => {
       if (response && response.success) {
-        loadStats();
-        loadDetailedStats();
+        // Forzar actualización inmediata
+        setTimeout(() => {
+          loadStats();
+          loadDetailedStats();
+        }, 100);
         showStatus('🔄 Contador reiniciado y guardado en historial', 'success');
       }
     });

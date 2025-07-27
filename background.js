@@ -140,10 +140,10 @@ chrome.runtime.onInstalled.addListener(() => {
       updateBadge();
     }, 10000);
     
-    // Actualizar estadísticas diarias cada minuto
+    // Actualizar estadísticas diarias cada 30 segundos
     setInterval(() => {
       updateDailyStats();
-    }, 60000);
+    }, 30000);
     
     // Verificar pestaña actual al cargar
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -153,6 +153,15 @@ chrome.runtime.onInstalled.addListener(() => {
         if (isMonitoredSite(domain)) {
           startTracking(domain, tabs[0].id);
         }
+      }
+    });
+    
+    // Limpiar actividad cuando se cierra una pestaña
+    chrome.tabs.onRemoved.addListener((tabId) => {
+      if (userActivity[tabId]) {
+        console.log(`[MindfulFeed] Pestaña cerrada, limpiando actividad para tab ${tabId}`);
+        delete userActivity[tabId];
+        updateBadge();
       }
     });
   });
@@ -236,7 +245,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
         startTracking(domain, activeInfo.tabId);
       } else {
         console.log(`[MindfulFeed] Sitio no monitoreado: ${domain}`);
-        stopTracking(activeInfo.tabId);
+        stopTrackingCompletely(activeInfo.tabId);
       }
     } else {
       console.log(`[MindfulFeed] Tab sin URL: ${activeInfo.tabId}`);
@@ -261,7 +270,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       startTracking(domain, tabId);
     } else {
       console.log(`[MindfulFeed] Sitio no monitoreado en actualización: ${domain}`);
-      stopTracking(tabId);
+      stopTrackingCompletely(tabId);
     }
   }
 });
@@ -269,7 +278,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 // Manejar cierre de pestañas
 chrome.tabs.onRemoved.addListener((tabId) => {
   console.log(`[MindfulFeed] Tab cerrada: ${tabId}`);
-  stopTracking(tabId);
+  stopTrackingCompletely(tabId);
 });
 
 // Verificar si un sitio está siendo monitoreado
@@ -342,22 +351,32 @@ function startTracking(domain, tabId) {
   console.log(`[MindfulFeed] startTracking llamado - Domain: ${domain}, TabId: ${tabId}, Config enabled: ${config.enabled}`);
   
   if (!config.enabled) {
-    console.log(`[MindfulFeed] Tracking deshabilitado`);
+    console.log(`[MindfulFeed] Tracking deshabilitado - Extensión no activa`);
     return;
   }
   
   const now = Date.now();
-  userActivity[tabId] = {
-    domain,
-    startTime: now,
-    lastActivity: now
-  };
   
-  // Inicializar sesión persistente si no existe
-  if (!config.currentSessionStart) {
-    config.currentSessionStart = now;
-    chrome.storage.sync.set({ config });
-    console.log(`[MindfulFeed] Sesión persistente iniciada`);
+  // Si ya existe actividad para esta pestaña, retomar desde donde se pausó
+  if (userActivity[tabId]) {
+    const activity = userActivity[tabId];
+    if (activity.isPaused) {
+      console.log(`[MindfulFeed] Retomando tracking para ${domain} en tab ${tabId}`);
+      activity.isPaused = false;
+      // Ajustar startTime para que el tiempo total sea correcto
+      activity.startTime = now - activity.pausedTime;
+      activity.pausedTime = 0;
+      activity.lastActivity = now;
+    }
+  } else {
+    // Nueva actividad
+    userActivity[tabId] = {
+      domain,
+      startTime: now,
+      lastActivity: now,
+      pausedTime: 0,
+      isPaused: false
+    };
   }
   
   console.log(`[MindfulFeed] Tracking iniciado para ${domain} en tab ${tabId}`);
@@ -366,32 +385,50 @@ function startTracking(domain, tabId) {
   // Actualizar badge
   updateBadge();
   
+  // Actualizar estadísticas diarias inmediatamente
+  updateDailyStats();
+  
   // Programar la primera notificación
   scheduleNotification(tabId);
 }
 
-// Detener seguimiento
+// Pausar seguimiento (en lugar de detener completamente)
 function stopTracking(tabId) {
   if (userActivity[tabId]) {
-    console.log(`[MindfulFeed] Deteniendo tracking para tab ${tabId}`);
+    console.log(`[MindfulFeed] Pausando tracking para tab ${tabId}`);
     
     // Limpiar timer de notificación
     if (userActivity[tabId].notificationTimer) {
       clearTimeout(userActivity[tabId].notificationTimer);
     }
     
-    // Calcular tiempo acumulado
-    const sessionTime = Math.floor((Date.now() - userActivity[tabId].startTime) / 60000); // en minutos
-    console.log(`[MindfulFeed] Tiempo de sesión acumulado: ${sessionTime} minutos`);
+    // Calcular tiempo transcurrido hasta ahora
+    const elapsedTime = Date.now() - userActivity[tabId].startTime;
+    userActivity[tabId].pausedTime = elapsedTime;
+    userActivity[tabId].isPaused = true;
     
-    // Solo agregar a estadísticas si el tiempo es mayor a 0
-    if (sessionTime > 0) {
-      addToDailyStats(sessionTime);
-      addToDetailedStats(userActivity[tabId].domain, sessionTime);
-      console.log(`[MindfulFeed] Estadísticas actualizadas - Tiempo diario: ${dailyStats.totalTime} minutos`);
+    console.log(`[MindfulFeed] Tracking pausado para ${userActivity[tabId].domain} - Tiempo acumulado: ${Math.floor(elapsedTime / 60000)} minutos`);
+    
+    updateBadge();
+  }
+}
+
+// Detener completamente el tracking (eliminar de userActivity)
+function stopTrackingCompletely(tabId) {
+  if (userActivity[tabId]) {
+    console.log(`[MindfulFeed] Deteniendo completamente tracking para tab ${tabId}`);
+    
+    // Limpiar timer de notificación
+    if (userActivity[tabId].notificationTimer) {
+      clearTimeout(userActivity[tabId].notificationTimer);
     }
     
+    // Eliminar completamente de userActivity
     delete userActivity[tabId];
+    
+    console.log(`[MindfulFeed] Tracking completamente detenido para tab ${tabId}`);
+    console.log(`[MindfulFeed] Actividad restante:`, userActivity);
+    
     updateBadge();
   }
 }
@@ -509,6 +546,18 @@ function getRandomMessage() {
 
 // Reiniciar timers cuando cambia la configuración
 function resetTimers() {
+  console.log(`[MindfulFeed] resetTimers - Config enabled: ${config.enabled}`);
+  
+  if (!config.enabled) {
+    // Si la extensión está desactivada, detener todo el tracking
+    console.log(`[MindfulFeed] Extensión desactivada - Deteniendo todo el tracking`);
+    userActivity = {};
+    updateBadge();
+    return;
+  }
+  
+  // Si la extensión está activada, reiniciar el tracking
+  console.log(`[MindfulFeed] Extensión activada - Reiniciando tracking`);
   userActivity = {};
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     tabs.forEach(tab => {
@@ -535,14 +584,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ success: true });
   } else if (request.action === 'getStats') {
     const currentSession = getCurrentSessionTime();
-    const minutes = Math.floor(currentSession / 60000);
-    const seconds = Math.floor((currentSession % 60000) / 1000);
-    console.log('[MindfulFeed] getStats - Sesión actual:', currentSession, `(${minutes}m ${seconds}s)`);
+    const currentMinutes = Math.floor(currentSession / 60000);
+    const currentSeconds = Math.floor((currentSession % 60000) / 1000);
+    console.log('[MindfulFeed] getStats - Sesión actual:', currentSession, `(${currentMinutes}m ${currentSeconds}s)`);
+    console.log('[MindfulFeed] getStats - dailyStats.totalTime:', dailyStats.totalTime);
+    console.log('[MindfulFeed] getStats - dailyTotal:', dailyStats.totalTime || 0);
     sendResponse({
       dailyStats,
       zenMode,
       currentSession: currentSession,
-      currentSessionMinutes: Math.max(1, minutes) // Mostrar al menos 1 minuto si hay actividad
+      currentSessionMinutes: Math.max(1, currentMinutes), // Mostrar al menos 1 minuto si hay actividad
+      dailyTotal: dailyStats.totalTime || 0 // Tiempo total acumulado en el día
     });
   } else if (request.action === 'startZenMode') {
     startZenMode(request.duration);
@@ -569,6 +621,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log(`[MindfulFeed] Deteniendo modo Zen`);
     stopZenMode();
     sendResponse({ success: true, zenMode: zenMode });
+  } else if (request.action === 'getZenMode') {
+    console.log(`[MindfulFeed] Obteniendo estado del modo Zen`);
+    sendResponse({ success: true, zenMode: zenMode });
+  } else if (request.action === 'getZenStatus') {
+    console.log(`[MindfulFeed] Obteniendo estado del modo Zen`);
+    sendResponse({ 
+      success: true, 
+      active: zenMode.active,
+      endTime: zenMode.endTime,
+      remainingTime: zenMode.active ? Math.max(0, zenMode.endTime - Date.now()) : 0
+    });
   }
 });
 
@@ -579,6 +642,11 @@ function updateBadge() {
   const seconds = Math.floor((currentTime % 60000) / 1000);
   
   console.log(`[MindfulFeed] Badge update - Tiempo actual: ${currentTime}ms (${minutes}m ${seconds}s), Actividad:`, Object.keys(userActivity));
+  
+  // Actualizar estadísticas diarias si hay actividad
+  if (Object.keys(userActivity).length > 0) {
+    updateDailyStats();
+  }
   
   if (zenMode.active) {
     const remainingTime = Math.max(0, zenMode.endTime - Date.now());
@@ -602,7 +670,13 @@ function getCurrentSessionTime() {
   
   // Calcular tiempo de pestañas activas
   Object.values(userActivity).forEach(activity => {
-    totalTime += now - activity.startTime;
+    if (activity.isPaused) {
+      // Si está pausado, usar el tiempo acumulado
+      totalTime += activity.pausedTime;
+    } else {
+      // Si está activo, calcular tiempo desde el inicio
+      totalTime += now - activity.startTime;
+    }
   });
   
   console.log(`[MindfulFeed] getCurrentSessionTime - Actividad:`, userActivity);
@@ -638,36 +712,42 @@ function addToDailyStats(minutes) {
 function updateDailyStats() {
   const currentTime = getCurrentSessionTime();
   const minutes = Math.floor(currentTime / 60000);
+  const today = new Date().toDateString();
   
-  // Solo actualizar si hay actividad activa
+  // Resetear estadísticas si es un nuevo día
+  if (dailyStats.lastReset !== today) {
+    console.log(`[MindfulFeed] Nuevo día detectado. Reseteando estadísticas diarias`);
+    dailyStats.totalTime = 0;
+    dailyStats.lastReset = today;
+    dailyStats.lastHistoryUpdate = null;
+    chrome.storage.sync.set({ dailyStats });
+    
+    // Limpiar actividad actual al cambiar de día
+    userActivity = {};
+  }
+  
+  // Actualizar dailyStats.totalTime con el tiempo acumulado del día
+  // Esto es lo que se muestra en la UI
   if (minutes > 0 && Object.keys(userActivity).length > 0) {
-    const today = new Date().toDateString();
-    
-    // Resetear estadísticas si es un nuevo día
-    if (dailyStats.lastReset !== today) {
-      dailyStats.totalTime = 0;
-      dailyStats.lastReset = today;
-    }
-    
-    // Actualizar solo si hay diferencia
+    // Solo actualizar si hay diferencia para evitar actualizaciones innecesarias
     if (dailyStats.totalTime !== minutes) {
       dailyStats.totalTime = minutes;
       chrome.storage.sync.set({ dailyStats });
-      console.log(`[MindfulFeed] Estadísticas diarias actualizadas automáticamente: ${dailyStats.totalTime} minutos`);
-      
-      // Agregar al historial detallado cada 5 minutos
-      const now = Date.now();
-      if (!dailyStats.lastHistoryUpdate || (now - dailyStats.lastHistoryUpdate) > 300000) { // 5 minutos
-        Object.keys(userActivity).forEach(tabId => {
-          const activity = userActivity[tabId];
-          if (activity && activity.domain) {
-            addToDetailedStats(activity.domain, minutes);
-            console.log(`[MindfulFeed] Guardado automático en historial: ${activity.domain} - ${minutes} minutos`);
-          }
-        });
-        dailyStats.lastHistoryUpdate = now;
-        chrome.storage.sync.set({ dailyStats });
-      }
+      console.log(`[MindfulFeed] Estadísticas diarias actualizadas: ${dailyStats.totalTime} minutos`);
+    }
+    
+    // Agregar al historial detallado cada 5 minutos
+    const now = Date.now();
+    if (!dailyStats.lastHistoryUpdate || (now - dailyStats.lastHistoryUpdate) > 300000) { // 5 minutos
+      Object.keys(userActivity).forEach(tabId => {
+        const activity = userActivity[tabId];
+        if (activity && activity.domain) {
+          addToDetailedStats(activity.domain, minutes);
+          console.log(`[MindfulFeed] Guardado automático en historial: ${activity.domain} - ${minutes} minutos`);
+        }
+      });
+      dailyStats.lastHistoryUpdate = now;
+      chrome.storage.sync.set({ dailyStats });
     }
   }
 }
@@ -681,6 +761,26 @@ function startZenMode(duration = 25) {
   
   chrome.storage.sync.set({ zenMode });
   updateBadge();
+  
+  // Notificar inmediatamente a todas las pestañas activas
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach(tab => {
+      if (tab.url && isMonitoredSite(new URL(tab.url).hostname)) {
+        try {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'zenModeStarted',
+            duration: duration
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.log(`[MindfulFeed] Error al notificar modo Zen a tab ${tab.id}:`, chrome.runtime.lastError);
+            }
+          });
+        } catch (error) {
+          console.log(`[MindfulFeed] Error al enviar mensaje a tab ${tab.id}:`, error);
+        }
+      }
+    });
+  });
   
   // Programar fin del modo Zen
   setTimeout(() => {
@@ -696,6 +796,25 @@ function stopZenMode() {
   
   chrome.storage.sync.set({ zenMode });
   updateBadge();
+  
+  // Notificar a todas las pestañas activas que el modo Zen terminó
+  chrome.tabs.query({}, (tabs) => {
+    tabs.forEach(tab => {
+      if (tab.url && isMonitoredSite(new URL(tab.url).hostname)) {
+        try {
+          chrome.tabs.sendMessage(tab.id, {
+            action: 'zenModeStopped'
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.log(`[MindfulFeed] Error al notificar fin de modo Zen a tab ${tab.id}:`, chrome.runtime.lastError);
+            }
+          });
+        } catch (error) {
+          console.log(`[MindfulFeed] Error al enviar mensaje a tab ${tab.id}:`, error);
+        }
+      }
+    });
+  });
 }
 
 // Verificar expiración del modo Zen
@@ -745,6 +864,7 @@ function resetStats() {
   const minutes = Math.floor(currentTime / 60000);
   
   console.log(`[MindfulFeed] Reiniciando estadísticas - Tiempo actual: ${minutes} minutos`);
+  console.log(`[MindfulFeed] resetStats - dailyStats.totalTime ANTES:`, dailyStats.totalTime);
   
   if (minutes > 0) {
     // Agregar al historial detallado para todos los sitios activos
@@ -768,14 +888,13 @@ function resetStats() {
       console.log(`[MindfulFeed] Guardado tiempo total en historial: ${dailyStats.totalTime} minutos`);
     }
     
-    // Reiniciar contador diario
+    // Reiniciar SOLO el contador de la UI (dailyStats.totalTime)
     dailyStats.totalTime = 0;
     chrome.storage.sync.set({ dailyStats });
+    console.log(`[MindfulFeed] resetStats - dailyStats.totalTime DESPUÉS:`, dailyStats.totalTime);
     
-    // Limpiar actividad actual
-    userActivity = {};
-    
-    console.log(`[MindfulFeed] Estadísticas reiniciadas. Tiempo guardado: ${minutes} minutos`);
+    // NO reiniciar el tracking interno - debe continuar funcionando
+    console.log(`[MindfulFeed] Contador de UI reiniciado. Tracking interno continúa funcionando. Tiempo guardado: ${minutes} minutos`);
   } else {
     console.log(`[MindfulFeed] No hay tiempo para guardar en historial`);
   }
@@ -845,7 +964,7 @@ function formatDate(dateString) {
   });
 }
 
-// Actualizar badge cada minuto
-setInterval(() => {
-  updateBadge();
-}, 60000); 
+    // Actualizar badge cada 10 segundos
+    setInterval(() => {
+      updateBadge();
+    }, 10000); 

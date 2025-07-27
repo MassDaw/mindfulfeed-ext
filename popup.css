@@ -326,6 +326,7 @@
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: auto;
+  backdrop-filter: blur(5px);
 }
 
 .zen-blocking-overlay.show {
@@ -348,6 +349,7 @@
   z-index: 2147483647;
   position: relative;
   pointer-events: auto;
+  margin: auto;
 }
 
 .zen-blocking-modal.show {

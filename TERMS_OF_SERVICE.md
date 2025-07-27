@@ -16,6 +16,8 @@ MindfulFeed es una extensión de Chrome diseñada para ayudar a los usuarios a c
 - Notificaciones motivacionales personalizables
 - Estadísticas de uso y análisis de patrones
 - Modo Zen para sesiones de enfoque
+- Reinicio de contador con guardado en historial
+- Actualización en tiempo real de estadísticas
 - Exportación de datos de uso
 
 ## 📱 Uso Aceptable

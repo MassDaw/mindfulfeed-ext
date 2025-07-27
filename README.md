@@ -9,6 +9,9 @@ Una extensión de Chrome que te ayuda a controlar el tiempo que pasas en redes s
 - **📊 Historial detallado**: Estadísticas por sitio de los últimos 7 días
 - **📈 Exportación CSV**: Descarga tus datos para análisis externo
 - **🧘‍♀️ Modo Zen**: Bloqueo temporal de sitios monitoreados para sesiones de enfoque
+- **🔄 Reinicio de contador**: Botón para reiniciar y guardar tiempo en historial
+- **⏰ Actualización en tiempo real**: Estadísticas que se actualizan automáticamente
+- **📅 Reset automático**: Contador se reinicia al cambiar de día
 - **Detección automática**: Monitorea automáticamente cuando visitas sitios de redes sociales
 - **Notificaciones centradas**: Modal elegante que aparece en el centro de la pantalla
 - **Sistema de categorías**: 4 categorías predefinidas con 40 mensajes únicos
@@ -88,8 +91,10 @@ Una extensión de Chrome que te ayuda a controlar el tiempo que pasas en redes s
 
 ### 📊 Estadísticas y seguimiento
 - **Tiempo diario**: Ve cuántos minutos has pasado en sitios monitoreados hoy
-- **Sesión actual**: Tiempo activo en la pestaña actual
-- **Cronómetro visual**: Badge en el ícono que se actualiza cada minuto
+- **Cronómetro visual**: Badge en el ícono que se actualiza cada 10 segundos
+- **Actualización en tiempo real**: Estadísticas se actualizan automáticamente cada 30 segundos
+- **Reinicio manual**: Botón de reinicio para guardar tiempo en historial y resetear contador
+- **Reset automático**: El contador se reinicia automáticamente al cambiar de día
 - **Colores del badge**: 
   - 🔴 Rojo: Tiempo activo en sitios monitoreados
   - 🟢 Verde: Modo Zen activo (tiempo restante)
@@ -106,7 +111,12 @@ Una extensión de Chrome que te ayuda a controlar el tiempo que pasas en redes s
 - **Sesiones de enfoque**: Bloquea temporalmente el acceso a sitios monitoreados
 - **Duración personalizable**: Configura sesiones de 5 a 120 minutos
 - **Modal de confirmación**: Al intentar acceder a sitios bloqueados
+- **Opciones del modal**: 
+  - "Cancelar": Te redirige a Google
+  - "Continuar": Desactiva automáticamente el modo Zen y permite la navegación
 - **Tiempo restante**: Contador en tiempo real en el popup
+- **Detención manual**: Botón "Detener Modo Zen" para cancelar manualmente
+- **Interfaz mejorada**: El botón "Iniciar" se oculta cuando el modo Zen está activo
 - **Finalización automática**: Notificación cuando termina la sesión
 
 ### Mensajes personalizados

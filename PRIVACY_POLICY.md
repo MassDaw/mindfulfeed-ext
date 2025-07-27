@@ -18,6 +18,7 @@ Esta Política de Privacidad describe cómo la extensión "MindfulFeed" ("nosotr
 - **Intervalo de notificación**: Tiempo entre notificaciones (1-60 minutos)
 - **Mensajes personalizados**: Categorías y mensajes motivacionales que crees
 - **Configuración del modo Zen**: Duración y estado de las sesiones de enfoque
+- **Estadísticas de reinicio**: Tiempo guardado cuando se reinicia el contador manualmente
 
 ### Datos Técnicos
 - **Información del navegador**: Versión de Chrome y sistema operativo
@@ -30,6 +31,7 @@ Esta Política de Privacidad describe cómo la extensión "MindfulFeed" ("nosotr
 - **Notificaciones**: Mostrar mensajes motivacionales en intervalos configurados
 - **Estadísticas**: Generar reportes de uso para tu análisis personal
 - **Modo Zen**: Gestionar sesiones de enfoque y bloqueo temporal
+- **Reinicio de contador**: Guardar tiempo en historial y resetear contador
 
 ### Funcionalidades Específicas
 - **Cronómetro visual**: Mostrar tiempo activo en el badge del ícono

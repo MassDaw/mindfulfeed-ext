@@ -10,156 +10,249 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background-color: #f5f5f5;
         }
         .test-section {
+            background: white;
+            padding: 20px;
             margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ddd;
             border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .test-btn {
-            background: #667eea;
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            background-color: #007bff;
             color: white;
             border: none;
             padding: 10px 20px;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
             margin: 5px;
         }
-        .test-btn:hover {
-            background: #5a67d8;
+        button:hover {
+            background-color: #0056b3;
         }
         .log {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 5px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
             padding: 10px;
-            margin: 10px 0;
-            font-family: monospace;
-            font-size: 12px;
+            border-radius: 4px;
             max-height: 200px;
             overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🧪 Test MindfulFeed Extension</h1>
-        
-        <div class="test-section">
-            <h3>1. Verificar que la extensión está cargada</h3>
-            <button class="test-btn" onclick="testExtensionLoaded()">Verificar Extensión</button>
-            <div id="extension-status" class="log"></div>
-        </div>
-        
-        <div class="test-section">
-            <h3>2. Obtener configuración</h3>
-            <button class="test-btn" onclick="testGetConfig()">Obtener Config</button>
-            <div id="config-result" class="log"></div>
-        </div>
-        
-        <div class="test-section">
-            <h3>3. Obtener estadísticas</h3>
-            <button class="test-btn" onclick="testGetStats()">Obtener Stats</button>
-            <div id="stats-result" class="log"></div>
-        </div>
-        
-        <div class="test-section">
-            <h3>4. Simular sitio monitoreado</h3>
-            <p>Esta página simula ser un sitio monitoreado. Deberías ver logs en la consola del service worker.</p>
-            <button class="test-btn" onclick="testTracking()">Test Tracking</button>
-            <div id="tracking-result" class="log"></div>
-        </div>
-        
-        <div class="test-section">
-            <h3>5. Logs de la consola</h3>
-            <p>Para ver los logs completos:</p>
-            <ol>
-                <li>Ve a <code>chrome://extensions/</code></li>
-                <li>Encuentra "MindfulFeed"</li>
-                <li>Haz clic en "Detalles"</li>
-                <li>Haz clic en "Inspeccionar vistas: service worker"</li>
-                <li>Ve a la pestaña "Console"</li>
-            </ol>
-        </div>
+    <h1>🧠 MindfulFeed Extension - Test</h1>
+    
+    <div class="test-section">
+        <h2>Estado de la Extensión</h2>
+        <div id="extensionStatus" class="status info">Verificando...</div>
+        <button onclick="checkExtensionStatus()">Verificar Estado</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Configuración</h2>
+        <div id="configStatus" class="status info">Cargando...</div>
+        <button onclick="getConfig()">Obtener Configuración</button>
+        <button onclick="resetConfig()">Reiniciar Configuración</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Estadísticas</h2>
+        <div id="statsStatus" class="status info">Cargando...</div>
+        <button onclick="getStats()">Obtener Estadísticas</button>
+        <button onclick="resetStats()">Reiniciar Estadísticas</button>
+        <button onclick="getDetailedStats()">Estadísticas Detalladas</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Modo Zen</h2>
+        <div id="zenStatus" class="status info">Verificando...</div>
+        <button onclick="startZenMode()">Iniciar Modo Zen (5 min)</button>
+        <button onclick="stopZenMode()">Detener Modo Zen</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Logs de Actividad</h2>
+        <div id="activityLog" class="log"></div>
+        <button onclick="clearLog()">Limpiar Log</button>
     </div>
 
     <script>
-        function log(elementId, message) {
-            const element = document.getElementById(elementId);
+        // Función para agregar logs
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('activityLog');
             const timestamp = new Date().toLocaleTimeString();
-            element.innerHTML += `[${timestamp}] ${message}\n`;
-            element.scrollTop = element.scrollHeight;
+            const logEntry = document.createElement('div');
+            logEntry.className = `status ${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            log.insertBefore(logEntry, log.firstChild);
         }
 
-        function testExtensionLoaded() {
-            log('extension-status', 'Verificando si la extensión está cargada...');
+        function clearLog() {
+            document.getElementById('activityLog').innerHTML = '';
+        }
+
+        // Verificar si la extensión está instalada
+        function checkExtensionStatus() {
+            const statusDiv = document.getElementById('extensionStatus');
             
             if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
-                log('extension-status', '✅ Chrome runtime disponible');
-                log('extension-status', `ID de extensión: ${chrome.runtime.id}`);
-                
-                // Intentar enviar un mensaje simple
-                chrome.runtime.sendMessage({ action: 'ping' }, (response) => {
-                    if (chrome.runtime.lastError) {
-                        log('extension-status', `❌ Error: ${chrome.runtime.lastError.message}`);
-                    } else {
-                        log('extension-status', '✅ Extensión responde correctamente');
-                    }
-                });
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = '✅ Extensión detectada y funcionando';
+                addLog('Extensión detectada correctamente', 'success');
             } else {
-                log('extension-status', '❌ Chrome runtime no disponible');
-                log('extension-status', '💡 Para probar la extensión, ve a un sitio monitoreado como youtube.com');
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '❌ Extensión no detectada';
+                addLog('Extensión no detectada', 'error');
             }
         }
 
-        function testGetConfig() {
-            log('config-result', 'Solicitando configuración...');
-            
-            chrome.runtime.sendMessage({ action: 'getConfig' }, (response) => {
-                if (chrome.runtime.lastError) {
-                    log('config-result', `❌ Error: ${chrome.runtime.lastError.message}`);
-                } else {
-                    log('config-result', `✅ Configuración recibida:`);
-                    log('config-result', JSON.stringify(response, null, 2));
-                }
-            });
+        // Obtener configuración
+        function getConfig() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({action: 'getConfig'}, (response) => {
+                    const statusDiv = document.getElementById('configStatus');
+                    if (response && response.success) {
+                        statusDiv.className = 'status success';
+                        statusDiv.innerHTML = `✅ Configuración cargada: Habilitado=${response.config.enabled}, Intervalo=${response.config.interval}min`;
+                        addLog(`Configuración: ${JSON.stringify(response.config)}`, 'success');
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.innerHTML = '❌ Error al obtener configuración';
+                        addLog('Error al obtener configuración', 'error');
+                    }
+                });
+            }
         }
 
-        function testGetStats() {
-            log('stats-result', 'Solicitando estadísticas...');
-            
-            chrome.runtime.sendMessage({ action: 'getStats' }, (response) => {
-                if (chrome.runtime.lastError) {
-                    log('stats-result', `❌ Error: ${chrome.runtime.lastError.message}`);
-                } else {
-                    log('stats-result', `✅ Estadísticas recibidas:`);
-                    log('stats-result', JSON.stringify(response, null, 2));
-                }
-            });
+        // Reiniciar configuración
+        function resetConfig() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({action: 'resetConfig'}, (response) => {
+                    if (response && response.success) {
+                        addLog('Configuración reiniciada', 'success');
+                        getConfig();
+                    } else {
+                        addLog('Error al reiniciar configuración', 'error');
+                    }
+                });
+            }
         }
 
-        function testTracking() {
-            log('tracking-result', 'Simulando navegación en sitio monitoreado...');
-            log('tracking-result', 'Deberías ver logs en la consola del service worker');
-            
-            // Simular que estamos en un sitio monitoreado
-            setTimeout(() => {
-                log('tracking-result', '✅ Test completado. Revisa la consola del service worker.');
-            }, 2000);
+        // Obtener estadísticas
+        function getStats() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({action: 'getStats'}, (response) => {
+                    const statusDiv = document.getElementById('statsStatus');
+                    if (response && response.success) {
+                        statusDiv.className = 'status success';
+                        statusDiv.innerHTML = `✅ Sesión actual: ${response.currentSession}min, Total diario: ${response.dailyTotal}min`;
+                        addLog(`Estadísticas: Sesión=${response.currentSession}min, Diario=${response.dailyTotal}min`, 'success');
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.innerHTML = '❌ Error al obtener estadísticas';
+                        addLog('Error al obtener estadísticas', 'error');
+                    }
+                });
+            }
         }
 
-        // Auto-test al cargar la página
+        // Reiniciar estadísticas
+        function resetStats() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({action: 'resetStats'}, (response) => {
+                    if (response && response.success) {
+                        addLog('Estadísticas reiniciadas', 'success');
+                        getStats();
+                    } else {
+                        addLog('Error al reiniciar estadísticas', 'error');
+                    }
+                });
+            }
+        }
+
+        // Obtener estadísticas detalladas
+        function getDetailedStats() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({action: 'getDetailedStats'}, (response) => {
+                    if (response && response.success) {
+                        addLog(`Estadísticas detalladas: ${response.stats.history.length} entradas`, 'success');
+                        console.log('Estadísticas detalladas:', response.stats);
+                    } else {
+                        addLog('Error al obtener estadísticas detalladas', 'error');
+                    }
+                });
+            }
+        }
+
+        // Iniciar modo Zen
+        function startZenMode() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({action: 'startZenMode', duration: 5}, (response) => {
+                    if (response && response.success) {
+                        addLog('Modo Zen iniciado (5 minutos)', 'success');
+                        updateZenStatus();
+                    } else {
+                        addLog('Error al iniciar modo Zen', 'error');
+                    }
+                });
+            }
+        }
+
+        // Detener modo Zen
+        function stopZenMode() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({action: 'stopZenMode'}, (response) => {
+                    if (response && response.success) {
+                        addLog('Modo Zen detenido', 'success');
+                        updateZenStatus();
+                    } else {
+                        addLog('Error al detener modo Zen', 'error');
+                    }
+                });
+            }
+        }
+
+        // Actualizar estado del modo Zen
+        function updateZenStatus() {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                chrome.runtime.sendMessage({action: 'getZenStatus'}, (response) => {
+                    const statusDiv = document.getElementById('zenStatus');
+                    if (response && response.active) {
+                        const remaining = Math.ceil((response.endTime - Date.now()) / 60000);
+                        statusDiv.className = 'status success';
+                        statusDiv.innerHTML = `✅ Modo Zen activo - ${remaining} minutos restantes`;
+                    } else {
+                        statusDiv.className = 'status info';
+                        statusDiv.innerHTML = 'ℹ️ Modo Zen inactivo';
+                    }
+                });
+            }
+        }
+
+        // Inicializar
         window.onload = function() {
-            log('extension-status', 'Página cargada. Iniciando tests...');
-            setTimeout(testExtensionLoaded, 1000);
+            checkExtensionStatus();
+            getConfig();
+            getStats();
+            updateZenStatus();
+            
+            // Actualizar cada 5 segundos
+            setInterval(() => {
+                getStats();
+                updateZenStatus();
+            }, 5000);
         };
     </script>
 </body>
