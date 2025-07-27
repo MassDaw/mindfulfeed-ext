@@ -154,8 +154,28 @@
     }
     
     .categories-container {
-      max-height: 500px;
+      max-height: 600px;
       overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    
+    .categories-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .categories-container::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 3px;
+    }
+    
+    .categories-container::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    
+    .categories-container::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
     
     .category-item {
@@ -173,6 +193,17 @@
       padding: 12px 16px;
       background: #f8fafc;
       border-bottom: 1px solid #e5e7eb;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    
+    .category-header:hover {
+      background: #f1f5f9;
+    }
+    
+    .category-item.expanded .category-header {
+      background: #f1f5f9;
+      border-bottom-color: #d1d5db;
     }
     
     .category-title {
@@ -215,39 +246,65 @@
     }
     
     .category-content {
-      padding: 12px 16px;
+      padding: 0;
       max-height: 0;
       overflow: hidden;
-      transition: max-height 0.3s ease;
+      transition: all 0.3s ease;
+      opacity: 0;
     }
     
     .category-content.expanded {
-      max-height: 400px;
+      padding: 12px 16px;
+      max-height: none;
+      opacity: 1;
     }
     
     .messages-list {
-      max-height: 300px;
+      max-height: 250px;
       overflow-y: auto;
       border: 1px solid #e5e7eb;
       border-radius: 6px;
       padding: 12px;
       background: #f9fafb;
       margin-bottom: 12px;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f1f5f9;
+    }
+    
+    .messages-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .messages-list::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 3px;
+    }
+    
+    .messages-list::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    
+    .messages-list::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
     
     .message-item {
       display: flex;
       align-items: flex-start;
-      padding: 10px;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      transition: background 0.2s ease;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      transition: all 0.2s ease;
       background: white;
-      border: 1px solid #f3f4f6;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
     
     .message-item:hover {
-      background: #f3f4f6;
+      background: #f8fafc;
+      border-color: #d1d5db;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
     
     .message-text {
@@ -319,12 +376,13 @@
     
     .empty-messages {
       text-align: center;
-      padding: 20px;
+      padding: 24px 16px;
       color: #6b7280;
       font-style: italic;
-      background: #f9fafb;
-      border-radius: 6px;
-      border: 1px dashed #d1d5db;
+      background: #f8fafc;
+      border-radius: 8px;
+      border: 2px dashed #d1d5db;
+      margin: 8px 0;
     }
     
     /* Pestañas */
@@ -400,6 +458,27 @@
       letter-spacing: 0.5px;
     }
     
+    .stats-actions {
+      margin-top: 12px;
+      text-align: center;
+    }
+    
+    .btn-reset {
+      background: #f59e0b;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-reset:hover {
+      background: #d97706;
+      transform: translateY(-1px);
+    }
+    
     /* Modo Zen */
     .zen-status {
       display: flex;
@@ -464,6 +543,22 @@
     
     .btn-zen.active:hover {
       background: #dc2626;
+    }
+    
+    .btn-stop-zen {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-stop-zen:hover {
+      background: #dc2626;
+      transform: translateY(-1px);
     }
     
     .btn-start-zen {
@@ -698,9 +793,10 @@
             <div class="stat-value" id="daily-time">0</div>
             <div class="stat-label">Minutos totales</div>
           </div>
-          <div class="stat-item">
-            <div class="stat-value" id="current-session">0</div>
-            <div class="stat-label">Sesión actual</div>
+          <div class="stats-actions">
+            <button class="btn btn-reset" id="reset-stats" title="Reiniciar contador y guardar en historial">
+              🔄 Reiniciar
+            </button>
           </div>
         </div>
       </div>
@@ -714,6 +810,7 @@
           <span class="zen-time" id="zen-time"></span>
         </div>
         <button class="btn btn-zen" id="zen-toggle">Iniciar Modo Zen</button>
+        <button class="btn btn-stop-zen" id="stop-zen" style="display: none;">Detener Modo Zen</button>
       </div>
       <div class="zen-config" id="zen-config" style="display: none;">
         <div class="input-group">

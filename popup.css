@@ -309,4 +309,139 @@
     transform: translateX(400px);
     opacity: 0;
   }
+}
+
+/* Estilos para el modal de bloqueo del Modo Zen */
+.zen-blocking-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: auto;
+}
+
+.zen-blocking-overlay.show {
+  opacity: 1;
+}
+
+.zen-blocking-overlay.hide {
+  opacity: 0;
+}
+
+.zen-blocking-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 0;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  transform: scale(0.8);
+  transition: transform 0.3s ease;
+  z-index: 2147483647;
+  position: relative;
+  pointer-events: auto;
+}
+
+.zen-blocking-modal.show {
+  transform: scale(1);
+}
+
+.zen-blocking-modal.hide {
+  transform: scale(0.8);
+}
+
+.zen-blocking-content {
+  padding: 30px;
+}
+
+.zen-blocking-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  text-align: center;
+  justify-content: center;
+}
+
+.zen-blocking-icon {
+  font-size: 32px;
+}
+
+.zen-blocking-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+.zen-blocking-message {
+  text-align: center;
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.zen-blocking-message p {
+  margin: 8px 0;
+  font-size: 16px;
+  color: #555;
+}
+
+.zen-blocking-message strong {
+  color: #333;
+  font-weight: 600;
+}
+
+.zen-blocking-url {
+  background: #f5f5f5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 14px;
+  color: #666;
+  margin-top: 15px;
+  word-break: break-all;
+}
+
+.zen-blocking-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.zen-blocking-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.zen-blocking-btn.cancel {
+  background: #f44336;
+  color: white;
+}
+
+.zen-blocking-btn.cancel:hover {
+  background: #d32f2f;
+  transform: translateY(-2px);
+}
+
+.zen-blocking-btn.continue {
+  background: #4CAF50;
+  color: white;
+}
+
+.zen-blocking-btn.continue:hover {
+  background: #45a049;
+  transform: translateY(-2px);
 } 

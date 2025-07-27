@@ -55,13 +55,15 @@ function setupEventListeners() {
   
   // Intervalo
   document.getElementById('interval').addEventListener('input', (e) => {
-    currentConfig.interval = parseInt(e.target.value) || 10;
+    const value = parseInt(e.target.value);
+    currentConfig.interval = isNaN(value) ? 10 : Math.max(1, Math.min(60, value));
   });
   
   // Modo Zen
   document.getElementById('zen-toggle').addEventListener('click', toggleZenConfig);
   document.getElementById('start-zen').addEventListener('click', startZenMode);
   document.getElementById('cancel-zen').addEventListener('click', cancelZenConfig);
+  document.getElementById('stop-zen').addEventListener('click', stopZenMode);
   
   // Pestañas
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -73,6 +75,7 @@ function setupEventListeners() {
   // Estadísticas
   document.getElementById('export-csv').addEventListener('click', exportStats);
   document.getElementById('clear-stats').addEventListener('click', clearStats);
+  document.getElementById('reset-stats').addEventListener('click', resetStats);
 }
 
 // Actualizar UI con la configuración actual
@@ -86,7 +89,7 @@ function updateUI() {
   }
   
   // Intervalo
-  document.getElementById('interval').value = currentConfig.interval || 10;
+  document.getElementById('interval').value = currentConfig.interval !== undefined ? currentConfig.interval : 10;
   
   // Sitios
   renderSitesList();
@@ -96,6 +99,9 @@ function updateUI() {
   
   // Cargar estadísticas
   loadStats();
+  
+  // Iniciar actualización en tiempo real
+  startStatsUpdate();
   
   // Cargar estadísticas detalladas
   loadDetailedStats();
@@ -240,7 +246,10 @@ function toggleCategory(categoryId) {
 // Expandir/contraer categoría
 function toggleCategoryExpansion(categoryId) {
   const content = document.querySelector(`.category-content[data-category="${categoryId}"]`);
+  const categoryItem = content.closest('.category-item');
+  
   content.classList.toggle('expanded');
+  categoryItem.classList.toggle('expanded');
 }
 
 // Editar mensaje
@@ -272,6 +281,15 @@ function addNewMessage(categoryId) {
     }
     currentConfig.messageCategories[categoryId].messages.push(newMessage.trim());
     renderCategoriesList();
+    
+    // Expandir la categoría automáticamente después de agregar un mensaje
+    setTimeout(() => {
+      const content = document.querySelector(`.category-content[data-category="${categoryId}"]`);
+      if (content) {
+        content.classList.add('expanded');
+        content.closest('.category-item').classList.add('expanded');
+      }
+    }, 100);
   }
 }
 
@@ -306,6 +324,15 @@ function addNewCategory() {
       messages: []
     };
     renderCategoriesList();
+    
+    // Expandir la nueva categoría automáticamente
+    setTimeout(() => {
+      const content = document.querySelector(`.category-content[data-category="${categoryId}"]`);
+      if (content) {
+        content.classList.add('expanded');
+        content.closest('.category-item').classList.add('expanded');
+      }
+    }, 100);
   }
 }
 
@@ -398,12 +425,9 @@ function hideStatus() {
 function loadStats() {
   chrome.runtime.sendMessage({ action: 'getStats' }, (response) => {
     if (response) {
-      // Actualizar estadísticas diarias
-      document.getElementById('daily-time').textContent = response.dailyStats.totalTime || 0;
-      
-      // Actualizar sesión actual
-      const currentMinutes = Math.floor(response.currentSession / 60000);
-      document.getElementById('current-session').textContent = currentMinutes || 0;
+      // Actualizar tiempo total (único contador)
+      const totalMinutes = response.dailyStats.totalTime || 0;
+      document.getElementById('daily-time').textContent = totalMinutes;
       
       // Actualizar estado del modo Zen
       updateZenStatus(response.zenMode);
@@ -411,17 +435,30 @@ function loadStats() {
   });
 }
 
+// Actualizar estadísticas en tiempo real
+function startStatsUpdate() {
+  // Actualizar inmediatamente
+  loadStats();
+  
+  // Actualizar cada 5 segundos para mejor feedback
+  setInterval(() => {
+    loadStats();
+  }, 5000);
+}
+
 // Actualizar estado del modo Zen
 function updateZenStatus(zenMode) {
   const zenStatus = document.getElementById('zen-status');
   const zenToggle = document.getElementById('zen-toggle');
+  const zenStop = document.getElementById('stop-zen');
   const zenTime = document.getElementById('zen-time');
   const statusText = document.querySelector('.zen-status-text');
   
   if (zenMode && zenMode.active) {
     zenStatus.classList.add('active');
-    zenToggle.textContent = 'Detener Modo Zen';
-    zenToggle.classList.add('active');
+    zenToggle.textContent = 'Iniciar Modo Zen';
+    zenToggle.classList.remove('active');
+    zenStop.style.display = 'block';
     
     const remainingTime = Math.max(0, zenMode.endTime - Date.now());
     const remainingMinutes = Math.ceil(remainingTime / 60000);
@@ -438,6 +475,7 @@ function updateZenStatus(zenMode) {
     zenStatus.classList.remove('active');
     zenToggle.textContent = 'Iniciar Modo Zen';
     zenToggle.classList.remove('active');
+    zenStop.style.display = 'none';
     zenTime.textContent = '';
     statusText.textContent = 'Inactivo';
   }
@@ -481,6 +519,16 @@ function startZenMode() {
 // Cancelar configuración del modo Zen
 function cancelZenConfig() {
   document.getElementById('zen-config').style.display = 'none';
+}
+
+// Detener modo Zen
+function stopZenMode() {
+  chrome.runtime.sendMessage({ action: 'stopZenMode' }, (response) => {
+    if (response && response.success) {
+      updateZenStatus(response.zenMode);
+      showStatus('🧘‍♀️ Modo Zen detenido', 'success');
+    }
+  });
 }
 
 // Cambiar pestaña
@@ -587,6 +635,19 @@ function clearStats() {
       if (response && response.success) {
         loadDetailedStats();
         showStatus('🗑️ Historial limpiado exitosamente', 'success');
+      }
+    });
+  }
+}
+
+// Reiniciar contador y guardar en historial
+function resetStats() {
+  if (confirm('¿Reiniciar el contador y guardar el tiempo actual en el historial?')) {
+    chrome.runtime.sendMessage({ action: 'resetStats' }, (response) => {
+      if (response && response.success) {
+        loadStats();
+        loadDetailedStats();
+        showStatus('🔄 Contador reiniciado y guardado en historial', 'success');
       }
     });
   }
